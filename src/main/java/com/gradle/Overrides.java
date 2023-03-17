@@ -70,7 +70,6 @@ final class Overrides {
         if (buildCache.getRemote() instanceof HttpBuildCache) {
             buildCache.remote(HttpBuildCache.class, remote -> {
                 sysPropertyOrEnvVariable(REMOTE_CACHE_URL, providers).ifPresent(remote::setUrl);
-                sysPropertyOrEnvVariable(REMOTE_CACHE_PATH, providers).map(path -> replacePath(remote.getUrl(), path)).ifPresent(remote::setUrl);
                 sysPropertyOrEnvVariable(REMOTE_CACHE_SHARD, providers).map(shard -> appendPath(remote.getUrl(), shard)).ifPresent(remote::setUrl);
                 booleanSysPropertyOrEnvVariable(REMOTE_CACHE_ALLOW_UNTRUSTED_SERVER, providers).ifPresent(remote::setAllowUntrustedServer);
                 booleanSysPropertyOrEnvVariable(REMOTE_CACHE_ALLOW_INSECURE_PROTOCOL, providers).ifPresent(remote::setAllowInsecureProtocol);
@@ -105,15 +104,6 @@ final class Overrides {
 
     private static String toEnvVarName(String sysPropertyName) {
         return sysPropertyName.toUpperCase().replace('.', '_');
-    }
-
-    private static URI replacePath(URI uri, String path) {
-        try {
-            String finalPath = prependAndAppendIfMissing(path, '/');
-            return new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), finalPath, uri.getQuery(), uri.getFragment());
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Cannot construct URI: " + uri, e);
-        }
     }
 
     private static URI appendPath(URI uri, String path) {
