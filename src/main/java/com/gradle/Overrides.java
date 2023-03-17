@@ -7,14 +7,8 @@ import org.gradle.api.provider.ProviderFactory;
 import org.gradle.caching.configuration.BuildCacheConfiguration;
 import org.gradle.caching.http.HttpBuildCache;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Optional;
-
-import static com.gradle.Utils.appendIfMissing;
-import static com.gradle.Utils.prependAndAppendIfMissing;
-import static com.gradle.Utils.stripPrefix;
 
 /**
  * Provide standardized Gradle Enterprise configuration. By applying the plugin, these settings will automatically be applied.
@@ -35,7 +29,6 @@ final class Overrides {
     static final String REMOTE_CACHE_URL = "gradle.cache.remote.url";
     static final String REMOTE_CACHE_SERVER = "gradle.cache.remote.server";
     static final String REMOTE_CACHE_PATH = "gradle.cache.remote.path";
-    static final String REMOTE_CACHE_SHARD = "gradle.cache.remote.shard";
     static final String REMOTE_CACHE_ALLOW_UNTRUSTED_SERVER = "gradle.cache.remote.allowUntrustedServer";
     static final String REMOTE_CACHE_ALLOW_INSECURE_PROTOCOL = "gradle.cache.remote.allowInsecureProtocol";
     static final String REMOTE_CACHE_ENABLED = "gradle.cache.remote.enabled";
@@ -57,7 +50,6 @@ final class Overrides {
         booleanSysPropertyOrEnvVariable(GRADLE_ENTERPRISE_ALLOW_UNTRUSTED_SERVER, providers).ifPresent(buildScan::setAllowUntrustedServer);
     }
 
-    @SuppressWarnings("DataFlowIssue")
     void configureBuildCache(BuildCacheConfiguration buildCache) {
         buildCache.local(local -> {
             sysPropertyOrEnvVariable(LOCAL_CACHE_DIRECTORY, providers).ifPresent(local::setDirectory);
@@ -71,7 +63,6 @@ final class Overrides {
         if (buildCache.getRemote() instanceof HttpBuildCache) {
             buildCache.remote(HttpBuildCache.class, remote -> {
                 sysPropertyOrEnvVariable(REMOTE_CACHE_URL, providers).ifPresent(remote::setUrl);
-                sysPropertyOrEnvVariable(REMOTE_CACHE_SHARD, providers).map(shard -> appendPath(remote.getUrl(), shard)).ifPresent(remote::setUrl);
                 booleanSysPropertyOrEnvVariable(REMOTE_CACHE_ALLOW_UNTRUSTED_SERVER, providers).ifPresent(remote::setAllowUntrustedServer);
                 booleanSysPropertyOrEnvVariable(REMOTE_CACHE_ALLOW_INSECURE_PROTOCOL, providers).ifPresent(remote::setAllowInsecureProtocol);
                 booleanSysPropertyOrEnvVariable(REMOTE_CACHE_ENABLED, providers).ifPresent(remote::setEnabled);
@@ -81,7 +72,6 @@ final class Overrides {
             buildCache.remote(GradleEnterpriseBuildCache.class, remote -> {
                 sysPropertyOrEnvVariable(REMOTE_CACHE_SERVER, providers).ifPresent(remote::setServer);
                 sysPropertyOrEnvVariable(REMOTE_CACHE_PATH, providers).ifPresent(remote::setPath);
-                sysPropertyOrEnvVariable(REMOTE_CACHE_SHARD, providers).map(shard -> appendPath(remote.getPath(), shard)).ifPresent(remote::setPath);
                 booleanSysPropertyOrEnvVariable(REMOTE_CACHE_ALLOW_UNTRUSTED_SERVER, providers).ifPresent(remote::setAllowUntrustedServer);
                 booleanSysPropertyOrEnvVariable(REMOTE_CACHE_ALLOW_INSECURE_PROTOCOL, providers).ifPresent(remote::setAllowInsecureProtocol);
                 booleanSysPropertyOrEnvVariable(REMOTE_CACHE_ENABLED, providers).ifPresent(remote::setEnabled);
@@ -104,25 +94,6 @@ final class Overrides {
 
     private static String toEnvVarName(String sysPropertyName) {
         return sysPropertyName.toUpperCase().replace('.', '_');
-    }
-
-    // HTTP Build Cache API
-    private static URI appendPath(URI uri, String path) {
-        try {
-            String currentPath = prependAndAppendIfMissing(uri.getPath(), '/');
-            String additionalPath = appendIfMissing(stripPrefix(path, '/'), '/');
-            String finalPath = currentPath + additionalPath; // URI always needs to end with slash
-            return new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), finalPath, uri.getQuery(), uri.getFragment());
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Cannot construct URI: " + uri, e);
-        }
-    }
-
-    // Gradle Enterprise Build Cache API
-    private static String appendPath(String basePath, String path) {
-        String currentPath = prependAndAppendIfMissing(basePath, '/');
-        String additionalPath = stripPrefix(path, '/'); // URI does not have to end with slash
-        return currentPath + additionalPath;
     }
 
 }
