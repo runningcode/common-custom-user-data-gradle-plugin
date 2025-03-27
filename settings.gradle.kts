@@ -7,10 +7,10 @@ plugins {
 val isCI = System.getenv("CI") != null
 
 develocity {
-    server = "https://ge.solutions-team.gradle.com"
+    //server = "https://ge.solutions-team.gradle.com"
     buildScan {
         uploadInBackground = !isCI
-        publishing.onlyIf { it.isAuthenticated }
+        //publishing.onlyIf { it.isAuthenticated }
         obfuscation {
             ipAddresses { addresses -> addresses.map { _ -> "0.0.0.0" } }
         }
@@ -23,7 +23,7 @@ buildCache {
     }
 
     remote(develocity.buildCache) {
-        isEnabled = true
+        isEnabled = false
         // Check access key presence to avoid build cache errors on PR builds when access key is not present
         val accessKey = System.getenv("GRADLE_ENTERPRISE_ACCESS_KEY")
         isPush = isCI && accessKey != null
